@@ -1,9 +1,14 @@
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
+//#include <map>
+//#include <stb_image.h>
+//#include <learnopengl/filesystem.h>
+//#include <string>
 
 // 窗口尺寸
 const unsigned int SCR_WIDTH = 800;
@@ -38,67 +43,25 @@ void main()
     FragColor = vec4(ourColor, 1.0);
 })";
 
+
 void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
     // 按键控制旋转
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) pitch += 1.0f;
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) pitch -= 1.0f;
-    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) yaw += 1.0f;
-    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) yaw -= 1.0f;
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) pitch -= 1.0f;
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) pitch += 1.0f;
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) yaw -= 1.0f;
+    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) yaw += 1.0f;
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) roll += 1.0f;
     if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) roll -= 1.0f;
     if (glfwGetKey(window, GLFW_KEY_Y) == GLFW_PRESS) yaw = 90.0f;
-    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS){
+    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
         pitch = 0.0f;
         yaw = 0.0f;
         roll = 0.0f;
     }
 }
-
-unsigned int CreateBitmapFont(HDC hDC, const char* fontName, int fontSize) {
-    HFONT hFont = CreateFont(
-        fontSize, 0, 0, 0,
-        FW_NORMAL,
-        FALSE, FALSE, FALSE,
-        ANSI_CHARSET,
-        OUT_TT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        ANTIALIASED_QUALITY,
-        FF_DONTCARE | DEFAULT_PITCH,
-        fontName
-    );
-
-    SelectObject(hDC, hFont);
-    unsigned int base = glGenLists(128);
-    wglUseFontBitmaps(hDC, 32, 96, base); // 生成ASCII 32-127的显示列表
-    return base;
-}
-
-void RenderText(unsigned int base, const char* text, float x, float y) {
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glOrtho(0, SCR_WIDTH, 0, SCR_HEIGHT, -1, 1); // 设置屏幕坐标系
-
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-
-    glRasterPos2f(x, SCR_HEIGHT - y - 16); // 坐标系原点在左下角
-    glListBase(base - 32);                 // 偏移到ASCII 32的位置
-    glCallLists(strlen(text), GL_UNSIGNED_BYTE, text);
-
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-}
-
-void DeleteFont(unsigned int base) {
-    glDeleteLists(base, 96);
-}
-
 
 int main(int argc, char* argv[]) {
     // 初始化GLFW
@@ -128,20 +91,24 @@ int main(int argc, char* argv[]) {
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-    // 立方体顶点数据（带颜色）
-    //float vertices[] = {
-    //    // 位置            // 颜色
-    //    -0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f, // 红色X轴
-    //     0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f,
-    //    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f, 0.0f, // 绿色Y轴
-    //     0.5f,  0.5f, -0.5f,  0.0f, 1.0f, 0.0f,
-    //    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f, 1.0f, // 蓝色Z轴
-    //     0.5f, -0.5f,  0.5f,  0.0f, 0.0f, 1.0f
-    //};
 
-    //unsigned int indices[] = {
-    //    0,1,2, 1,2,3, 4,5,0, 5,0,1, 2,3,4, 3,4,5
-    //};
+    // 加载PNG文件（需要stb_image.h）
+    //int width, height, channels;
+    //unsigned char* image = stbi_load(FileSystem::getPath("resources/textures/default8.png").c_str(), &width, &height, &channels, 0);
+    //if (!image) {
+    //    std::cerr << "Failed to load font texture!" << std::endl;
+    //    return -1;
+    //}
+
+    //glGenTextures(1, &fontTextureID);
+    //glBindTexture(GL_TEXTURE_2D, fontTextureID);
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, image);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    //stbi_image_free(image);
+
 
     // 顶点数据结构（位置+颜色）
     struct Vertex {
@@ -217,12 +184,10 @@ int main(int argc, char* argv[]) {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     // 位置属性
-//  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0); // 位置
     glEnableVertexAttribArray(0);
     // 颜色属性
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color)); // 颜色
-//  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
     // 投影矩阵
@@ -236,9 +201,8 @@ int main(int argc, char* argv[]) {
     // 在gladLoadGL之后添加
     glEnable(GL_DEPTH_TEST);
     //glEnable(GL_CULL_FACE);
-
-    HDC hDC = wglGetCurrentDC();
-    unsigned int fontBase = CreateBitmapFont(hDC, "Courier New", 24);
+    //glEnable(GL_BLEND);
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // 标准透明混合
 
     // 渲染循环
     while (!glfwWindowShouldClose(window)) {
@@ -256,14 +220,8 @@ int main(int argc, char* argv[]) {
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
         // 渲染立方体
-//        glBindVertexArray(VAO);
-//        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-
-        glColor3f(1.0f, 0.5f, 0.0f); // 设置字体颜色
-        RenderText(fontBase, "OpenGL Text: 123 FPS", 10, 30);
 
         // 显示当前角度
         std::cout << "\rPitch(X): " << pitch << "°  Yaw(Y): " << yaw << "°  Roll(Z): " << roll << "°  " << std::flush;
@@ -275,7 +233,6 @@ int main(int argc, char* argv[]) {
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
-    DeleteFont(fontBase);
     glfwTerminate();
     return 0;
 }
