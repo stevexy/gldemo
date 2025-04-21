@@ -10,20 +10,18 @@
 #include <learnopengl/filesystem.h>
 #include <string>
 
-// ���ڳߴ�
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
-// ��ת�Ƕȳ�ʼֵ
-float pitch = 0.0f;   // X��
-float yaw = 0.0f;     // Y��
-float roll = 0.0f;    // Z��
+float pitch = 0.0f;   // X
+float yaw = 0.0f;     // Y
+float roll = 0.0f;    // Z
 
 struct Character {
-    GLuint     TextureID;  // ����������ID
-    glm::ivec2 Size;       // ���δ�С
-    glm::ivec2 Bearing;    // �ӻ�׼�ߵ�������/������ƫ��ֵ
-    GLuint     Advance;    // ԭ�����һ������ԭ��ľ���
+    GLuint     TextureID;
+    glm::ivec2 Size;
+    glm::ivec2 Bearing;
+    GLuint     Advance;
 };
 
 std::map<GLchar, Character> Characters;
@@ -130,29 +128,29 @@ int main(int argc, char* argv[]) {
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-	// �����ı���ɫ��
-	unsigned int textVertexShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(textVertexShader, 1, &textVertexShaderSource, NULL);
-	glCompileShader(textVertexShader);
-	unsigned int textFragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(textFragmentShader, 1, &textFragmentShaderSource, NULL);
-	glCompileShader(textFragmentShader);
-	unsigned int textShaderProgram = glCreateProgram();
-	glAttachShader(textShaderProgram, textVertexShader);
-	glAttachShader(textShaderProgram, textFragmentShader);
-	glLinkProgram(textShaderProgram);
-	glDeleteShader(textVertexShader);
-	glDeleteShader(textFragmentShader);
-	// ��������
-	glGenVertexArrays(1, &textVAO);
-	glGenBuffers(1, &textVBO);
-	glBindVertexArray(textVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, textVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
-	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);	
+    // �����ı���ɫ��
+    unsigned int textVertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(textVertexShader, 1, &textVertexShaderSource, NULL);
+    glCompileShader(textVertexShader);
+    unsigned int textFragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(textFragmentShader, 1, &textFragmentShaderSource, NULL);
+    glCompileShader(textFragmentShader);
+    unsigned int textShaderProgram = glCreateProgram();
+    glAttachShader(textShaderProgram, textVertexShader);
+    glAttachShader(textShaderProgram, textFragmentShader);
+    glLinkProgram(textShaderProgram);
+    glDeleteShader(textVertexShader);
+    glDeleteShader(textFragmentShader);
+    // ��������
+    glGenVertexArrays(1, &textVAO);
+    glGenBuffers(1, &textVBO);
+    glBindVertexArray(textVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, textVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 
     // ����PNG�ļ�����Ҫstb_image.h��
     int width, height, channels;
@@ -166,28 +164,38 @@ int main(int argc, char* argv[]) {
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
         // load first 128 characters of ASCII set
-		unsigned int fontwidth = 8;
-		unsigned int fontheight = 8;
+        unsigned int fontwidth = 8;
+        unsigned int fontheight = 8;
+        unsigned int glyphwidth = 128;
+		unsigned char* chars = (unsigned char*)malloc(fontwidth * fontheight * 4);
+        if (chars == nullptr) {
+            std::cerr << "Error: 'chars' is null. Memory allocation failed." << std::endl;
+            return -1;
+        }
+		int offset = glyphwidth * 4 * 8 * 2; // 128 pixel per line multiply by 4 bytes per pixel and 8 lines and * 2
         for (unsigned char c = 0; c < 128; c++)
         {
             // Load character glyph 
-            // width 8  heighth 8
-            // 256/16+128%16
-            // 
             // generate texture
+            // start from 32
+			unsigned char* image_base = image + offset + ((c / 16) * glyphwidth * 4 * 8) + ((c % 16) * fontwidth * 4);
+			for (int i = 0; i < fontheight; i++) {
+				memcpy(chars + i * fontwidth * 4, image_base + i * glyphwidth * 4, 4);
+			}
+            
             unsigned int texture;
             glGenTextures(1, &texture);
             glBindTexture(GL_TEXTURE_2D, texture);
             glTexImage2D(
                 GL_TEXTURE_2D,
                 0,
-                GL_RED,
+                GL_RGBA,
                 fontwidth,
                 fontheight,
                 0,
-                GL_RED,
+                GL_RGBA,
                 GL_UNSIGNED_BYTE,
-                image
+                chars
             );
             // set texture options
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -198,13 +206,15 @@ int main(int argc, char* argv[]) {
             Character character = {
                 texture,
                 glm::ivec2(fontwidth, fontheight),
-                glm::ivec2(0, 0),
-                static_cast<unsigned int>(fontwidth)
+                glm::ivec2(1, fontheight),
+                static_cast<unsigned int>(fontwidth * fontheight * 4)
             };
             Characters.insert(std::pair<char, Character>(c, character));
         }
         glBindTexture(GL_TEXTURE_2D, 0);
 
+		// free image memory
+		free(chars);
         stbi_image_free(image);
     }
 
@@ -217,69 +227,52 @@ int main(int argc, char* argv[]) {
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     //
 
-
-    // �������ݽṹ��λ��+��ɫ��
     struct Vertex {
         glm::vec3 position;
         glm::vec3 color;
     };
 
-    // ������24�����㣨ÿ����4�����㣩
     Vertex vertices[] = {
-        // ǰ���棨��ɫ��
         { { 0.5f, 0.5f, 0.5f}, {1.0f, 0.0f, 0.0f} },  // 0
         { { 0.5f,-0.5f, 0.5f}, {1.0f, 0.0f, 0.0f} },  // 1
         { {-0.5f,-0.5f, 0.5f}, {1.0f, 0.0f, 0.0f} },  // 2
         { {-0.5f, 0.5f, 0.5f}, {1.0f, 0.0f, 0.0f} },  // 3
 
-        // ����棨��ɫ��
         { { 0.5f, 0.5f,-0.5f}, {0.0f, 0.0f, 1.0f} },  // 4
         { { 0.5f,-0.5f,-0.5f}, {0.0f, 0.0f, 1.0f} },  // 5
         { {-0.5f,-0.5f,-0.5f}, {0.0f, 0.0f, 1.0f} },  // 6
         { {-0.5f, 0.5f,-0.5f}, {0.0f, 0.0f, 1.0f} },  // 7
 
-        // �ұ��棨��ɫ��
         { { 0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 0.0f} },  // 8
         { { 0.5f,-0.5f, 0.5f}, {0.0f, 1.0f, 0.0f} },  // 9
         { { 0.5f,-0.5f,-0.5f}, {0.0f, 1.0f, 0.0f} },  // 10
         { { 0.5f, 0.5f,-0.5f}, {0.0f, 1.0f, 0.0f} },  // 11
 
-        // ����棨��ɫ��
         { {-0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 1.0f} },  // 12
         { {-0.5f,-0.5f, 0.5f}, {0.0f, 1.0f, 1.0f} },  // 13
         { {-0.5f,-0.5f,-0.5f}, {0.0f, 1.0f, 1.0f} },  // 14
         { {-0.5f, 0.5f,-0.5f}, {0.0f, 1.0f, 1.0f} },  // 15
 
-        // �ϱ��棨��ɫ��
         { { 0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 0.0f} },  // 16
         { {-0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 0.0f} },  // 17
         { {-0.5f, 0.5f,-0.5f}, {1.0f, 1.0f, 0.0f} },  // 18
         { { 0.5f, 0.5f,-0.5f}, {1.0f, 1.0f, 0.0f} },  // 19
 
-        // �±��棨��ɫ��
         { { 0.5f,-0.5f, 0.5f}, {1.0f, 0.0f, 1.0f} },  // 20
         { {-0.5f,-0.5f, 0.5f}, {1.0f, 0.0f, 1.0f} },  // 21
         { {-0.5f,-0.5f,-0.5f}, {1.0f, 0.0f, 1.0f} },  // 22
         { { 0.5f,-0.5f,-0.5f}, {1.0f, 0.0f, 1.0f} }   // 23
     };
 
-    // �������ݣ�36��������ÿ����6��������
     unsigned int indices[] = {
-        // ǰ����
-        0, 1, 2,  2, 3, 0,
-        // �����
-        4, 5, 6,  6, 7, 4,
-        // �ұ���
-        8, 9,10, 10,11,8,
-        // �����
+        0 , 1, 2,  2, 3, 0,
+        4 , 5, 6,  6, 7, 4,
+        8 , 9,10, 10,11, 8,
         12,13,14, 14,15,12,
-        // �ϱ���
         16,17,18, 18,19,16,
-        // �±���
         20,21,22, 22,23,20
     };
 
-    // ����VAO/VBO
     unsigned int VBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -291,49 +284,43 @@ int main(int argc, char* argv[]) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-    // λ������
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0); // λ��
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
     glEnableVertexAttribArray(0);
-    // ��ɫ����
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color)); // ��ɫ
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
     glEnableVertexAttribArray(1);
 
-    // ͶӰ����
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
     glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));
 
-    glUseProgram(shaderProgram);
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, &projection[0][0]);
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, &view[0][0]);
-
-    // ��gladLoadGL֮������
     glEnable(GL_DEPTH_TEST);
     //glEnable(GL_CULL_FACE);
     //glEnable(GL_BLEND);
-    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // ��׼͸�����
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // ��Ⱦѭ��
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // ����ŷ������ת����XYZ˳��
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::rotate(model, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));// X��
-        model = glm::rotate(model, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));  // Y��
-        model = glm::rotate(model, glm::radians(roll), glm::vec3(0.0f, 0.0f, 1.0f)); // Z��
+        glBindVertexArray(VAO);
+        glUseProgram(shaderProgram);
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, &projection[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, &view[0][0]);
 
-        // ���ݾ�����ɫ��
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::rotate(model, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));// X asix
+        model = glm::rotate(model, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));  // Y
+        model = glm::rotate(model, glm::radians(roll), glm::vec3(0.0f, 0.0f, 1.0f)); // Z
+
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
-        // ��Ⱦ������
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
         RenderText(textShaderProgram, "This is sample text", 25.0f, 25.0f, 1.0f, glm::vec3(0.5, 0.8f, 0.2f));
-        // ��ʾ��ǰ�Ƕ�
-        std::cout << "\rPitch(X): " << pitch << "��  Yaw(Y): " << yaw << "��  Roll(Z): " << roll << "��  " << std::flush;
+
+        std::cout << "\rPitch(X): " << pitch << "°  Yaw(Y): " << yaw << "°  Roll(Z): " << roll << "°  " << std::flush;
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -342,6 +329,10 @@ int main(int argc, char* argv[]) {
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
+	glDeleteProgram(shaderProgram);
+	glDeleteProgram(textShaderProgram);
+	glDeleteVertexArrays(1, &textVAO);
+	glDeleteBuffers(1, &textVBO);
     glfwTerminate();
     return 0;
 }
@@ -349,7 +340,7 @@ int main(int argc, char* argv[]) {
 void RenderText(unsigned int shaderProgram, std::string text, float x, float y, float scale, glm::vec3 color)
 {
     // activate corresponding render state	
-	glUseProgram(shaderProgram);
+    glUseProgram(shaderProgram);
     glUniform3f(glGetUniformLocation(shaderProgram, "textColor"), color.x, color.y, color.z);
     glActiveTexture(GL_TEXTURE0);
     glBindVertexArray(textVAO);
