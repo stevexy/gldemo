@@ -5,6 +5,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
+#include <sstream>
 #include <map>
 #include <stb_image.h>
 #include <learnopengl/filesystem.h>
@@ -103,18 +104,15 @@ void processInput(GLFWwindow* window) {
 }
 
 int main(int argc, char* argv[]) {
-	// ��ʼ��GLFW
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	// ��������
 	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Gimbal Lock Demo", NULL, NULL);
 	glfwMakeContextCurrent(window);
 	gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
-	// ������ɫ��
 	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
 	glCompileShader(vertexShader);
@@ -129,7 +127,6 @@ int main(int argc, char* argv[]) {
 	glLinkProgram(shaderProgram);
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
-	
 	
 	// generate bitmap font
 	BitmapFontGenerate();
@@ -156,80 +153,6 @@ int main(int argc, char* argv[]) {
 	glEnableVertexAttribArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
-
-	int width, height, channels;
-	unsigned char* image = stbi_load(FileSystem::getPath("resources/textures/default8.png").c_str(), &width, &height, &channels, 0);
-	if (!image) {
-		std::cerr << "Failed to load font texture!" << std::endl;
-		return -1;
-	}
-	else {
-		// disable byte-alignment restriction
-		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-		// load first 128 characters of ASCII set
-		unsigned int fontwidth = 8;
-		unsigned int fontheight = 8;
-		unsigned int glyphwidth = 128;
-		unsigned char* chars = (unsigned char*)malloc(fontwidth * fontheight * 4);
-		if (chars == nullptr) {
-			std::cerr << "Error: 'chars' is null. Memory allocation failed." << std::endl;
-			return -1;
-		}
-		int offset = glyphwidth * 4 * 8 * 2; // 128 pixel per line multiply by 4 bytes per pixel and 8 lines and * 2
-		for (unsigned char c = 0; c < 128; c++)
-		{
-			// Load character glyph
-			// generate texture
-			// start from 32
-			unsigned char* image_base = image + offset + ((c / 16) * glyphwidth * 4 * 8) + ((c % 16) * fontwidth * 4);
-			for (int i = 0; i < fontheight; i++) {
-				memcpy(chars + i * fontwidth * 4, image_base + i * glyphwidth * 4, 4);
-			}
-			
-			unsigned int texture;
-			glGenTextures(1, &texture);
-			glBindTexture(GL_TEXTURE_2D, texture);
-			glTexImage2D(
-				GL_TEXTURE_2D,
-				0,
-				GL_RGBA,
-				fontwidth,
-				fontheight,
-				0,
-				GL_RGBA,
-				GL_UNSIGNED_BYTE,
-				chars
-			);
-			// set texture options
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			// now store character for later use
-			Character character = {
-				texture,
-				glm::ivec2(fontwidth, fontheight),
-				glm::ivec2(1, fontheight),
-				static_cast<unsigned int>(fontwidth * fontheight * 4)
-			};
-			Characters.insert(std::pair<char, Character>(c, character));
-		}
-		glBindTexture(GL_TEXTURE_2D, 0);
-
-		// free image memory
-		free(chars);
-		stbi_image_free(image);
-	}
-
-	//glGenTextures(1, &fontTextureID);
-	//glBindTexture(GL_TEXTURE_2D, fontTextureID);
-	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, image);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	//
 
 	struct Vertex {
 		glm::vec3 position;
@@ -308,11 +231,15 @@ int main(int argc, char* argv[]) {
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		
 		RenderCube(cubeVAO, shaderProgram,projection,view);
-		RenderText(textShaderProgram, "This is sample text", 25.0f, 25.0f, 5.0f, glm::vec3(0.5, 0.8f, 0.2f), otprojection, view);
-
-		std::cout << "\rPitch(X): " << pitch << "°  Yaw(Y): " << yaw << "°  Roll(Z): " << roll << "°  " << std::flush;
+		std::stringstream ss;
+		ss << "Pitch(X): " << pitch << "°  Yaw(Y): " << yaw << "°  Roll(Z): " << roll << "°  ";
+		RenderText(textShaderProgram, ss.str(), 25.0f, 25.0f, 2.0f, glm::vec3(0.5, 0.8f, 0.2f), otprojection, view);
+		
+		RenderText(textShaderProgram, "Press up and down to change pitch, left & right for yaw", 25.0f, 68.0f, 1.5f, glm::vec3(0.8, 0.5f, 0.2f), otprojection, view);
+		RenderText(textShaderProgram, "Q W for roll, R to reset, Y set the pitch to 90 degree", 25.0f, 50.0f, 1.5f, glm::vec3(0.8, 0.5f, 0.2f), otprojection, view);
+		
+//		std::cout << "\rPitch(X): " << pitch << "°  Yaw(Y): " << yaw << "°  Roll(Z): " << roll << "°  " << std::flush;
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -356,38 +283,73 @@ int BitmapFontGenerate() {
 			// Load character glyph
 			// generate texture
 			unsigned char* image_base = image + ((c / 16) * glyphwidth * 4 * 8) + ((c % 16) * fontwidth * 4);
-			for (int i = 0; i < fontheight; i++) {
-				memcpy(chars + i * fontwidth * 4, image_base + i * glyphwidth * 4, 4 * 8);
-			}
 
-			unsigned int texture;
-			glGenTextures(1, &texture);
-			glBindTexture(GL_TEXTURE_2D, texture);
-			glTexImage2D(
-				GL_TEXTURE_2D,
-				0,
-				GL_RGBA,
-				fontwidth,
-				fontheight,
-				0,
-				GL_RGBA,
-				GL_UNSIGNED_BYTE,
-				chars
-			);
-			// set texture options
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			// now store character for later use
-			Character character = {
-				texture,
-				glm::ivec2(fontwidth, fontheight),
-				glm::ivec2(0, fontheight),
-				static_cast<unsigned int>(fontwidth * fontheight * 3 * 2)
-			};
-			Characters.insert(std::pair<char, Character>(c, character));
-		}
+			memset(chars, 0, fontwidth * fontheight * 4);
+			
+			// 查找左右边界并同时复制数据
+			int left_edge = fontwidth;  // 默认为超出右侧边界
+			int right_edge = -1;        // 默认为超出左侧边界
+			
+			for (int row = 0; row < fontheight; row++) {
+				for (int col = 0; col < fontwidth; col++) {
+					// 获取原始像素位置
+					unsigned char* pixel = image_base + (row * glyphwidth * 4) + (col * 4);
+					
+					// 如果有不透明像素（alpha > 0）
+					if (pixel[3] > 0) {
+						// 更新边界
+						if (col < left_edge) left_edge = col;
+						if (col > right_edge) right_edge = col;
+						
+						// 直接复制有效像素到对应位置
+						unsigned char* dst_pixel = chars + (row * fontwidth * 4) + (col * 4);
+						dst_pixel[0] = pixel[0];
+						dst_pixel[1] = pixel[1];
+						dst_pixel[2] = pixel[2];
+						dst_pixel[3] = pixel[3];
+					}
+				}
+			}
+			
+			// 处理空字符的情况
+			if (left_edge > right_edge) {
+				left_edge = 0;
+				right_edge = fontwidth - 1;
+			}
+			
+			// 计算实际宽度
+			int actual_width = right_edge - left_edge + 1;
+			
+			std::cout << "\r char width " << actual_width << " right " << right_edge << std::flush;
+			
+		 	unsigned int texture;
+		 	glGenTextures(1, &texture);
+		 	glBindTexture(GL_TEXTURE_2D, texture);
+		 	glTexImage2D(
+		 		GL_TEXTURE_2D,
+		 		0,
+		 		GL_RGBA,
+		 		fontwidth,
+		 		fontheight,
+		 		0,
+		 		GL_RGBA,
+		 		GL_UNSIGNED_BYTE,
+		 		chars
+		 	);
+		 	// set texture options
+		 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		 	// now store character for later use
+		 	Character character = {
+		 		texture,
+		 		glm::ivec2(fontwidth, fontheight),
+		 		glm::ivec2(0, fontheight),
+		 		static_cast<unsigned int>((actual_width+1) * fontheight * 8 )
+		 	};
+		 	Characters.insert(std::pair<char, Character>(c, character));
+		 }
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		// free image memory
