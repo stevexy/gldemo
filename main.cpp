@@ -28,7 +28,6 @@ struct Character {
 std::map<GLchar, Character> Characters;
 unsigned int textVAO, textVBO;
 
-// ��ɫ��Դ��
 const char* vertexShaderSource = R"(
 #version 330 core
 layout (location = 0) in vec3 aPos;
