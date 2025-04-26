@@ -85,7 +85,7 @@ void RenderCube(unsigned int cubeVAO, unsigned int shaderProgram, const glm::mat
 void RenderText(unsigned int shaderProgram, std::string text, float x, float y, float scale, glm::vec3 color, const glm::mat4& projection, const glm::mat4& view);
 int BitmapFontGenerate();
 void RenderAxes(unsigned int axisVAO, unsigned int shaderProgram, const glm::mat4& projection, const glm::mat4& view);
-void RenderCircle(unsigned int circleVAO, unsigned int shaderProgram, const glm::mat4& projection, const glm::mat4& view);
+void RenderCircle(unsigned int circleVAO, unsigned int shaderProgram, const glm::mat4& projection, const glm::mat4& view, glm::vec3 axis);
 std::vector<float> GenerateCircleVertices(float radius, int segments, glm::vec3 axis);
 
 void processInput(GLFWwindow* window) {
@@ -311,9 +311,10 @@ int main(int argc, char* argv[]) {
 		RenderAxes(axisVAO, shaderProgram, projection, view);
 
 		// Render rotation circles
-		RenderCircle(circleVAO[0], shaderProgram, projection, view); // X-axis circle
-		RenderCircle(circleVAO[1], shaderProgram, projection, view); // Y-axis circle
-		RenderCircle(circleVAO[2], shaderProgram, projection, view); // Z-axis circle
+		RenderCircle(circleVAO[0], shaderProgram, projection, view, glm::vec3(1.0f, 0.0f, 0.0f)); // X-axis circle (Pitch)
+		RenderCircle(circleVAO[1], shaderProgram, projection, view, glm::vec3(0.0f, 1.0f, 0.0f)); // Y-axis circle (Yaw)
+		RenderCircle(circleVAO[2], shaderProgram, projection, view, glm::vec3(0.0f, 0.0f, 1.0f)); // Z-axis circle (Roll)
+
 
 		std::stringstream ss;
 		ss << "Pitch(X): " << pitch << "°  Yaw(Y): " << yaw << "°  Roll(Z): " << roll << "°  ";
@@ -578,8 +579,8 @@ void RenderText(unsigned int shaderProgram, std::string text, float x, float y, 
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void RenderCircle(unsigned int circleVAO, unsigned int shaderProgram, const glm::mat4& projection, const glm::mat4& view) {
-	glEnable(GL_DEPTH_TEST); // Optional: Disable depth testing for circles
+void RenderCircle(unsigned int circleVAO, unsigned int shaderProgram, const glm::mat4& projection, const glm::mat4& view, glm::vec3 axis) {
+	glEnable(GL_DEPTH_TEST); // Enable depth testing for proper rendering
 	glBindVertexArray(circleVAO);
 	glUseProgram(shaderProgram);
 
@@ -589,9 +590,19 @@ void RenderCircle(unsigned int circleVAO, unsigned int shaderProgram, const glm:
 
 	glm::mat4 model = glm::mat4(1.0f);
 
-	model = glm::rotate(model, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));// X asix
-	model = glm::rotate(model, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));  // Y
-	model = glm::rotate(model, glm::radians(roll), glm::vec3(0.0f, 0.0f, 1.0f)); // Z
+	// Apply rotations in the correct order
+	if (axis == glm::vec3(1.0f, 0.0f, 0.0f)) { // X-axis circle (Pitch)
+		//model = glm::rotate(model, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));   // Apply Yaw
+		//model = glm::rotate(model, glm::radians(roll), glm::vec3(0.0f, 0.0f, 1.0f));  // Apply Roll
+	}
+	else if (axis == glm::vec3(0.0f, 1.0f, 0.0f)) { // Y-axis circle (Yaw)
+		model = glm::rotate(model, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f)); // Apply Pitch
+//		model = glm::rotate(model, glm::radians(roll), glm::vec3(0.0f, 0.0f, 1.0f));  // Apply Roll
+	}
+	else if (axis == glm::vec3(0.0f, 0.0f, 1.0f)) { // Z-axis circle (Roll)
+		model = glm::rotate(model, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f)); // Apply Pitch
+		model = glm::rotate(model, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));   // Apply Yaw
+	}
 
 	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
