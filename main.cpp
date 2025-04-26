@@ -10,11 +10,13 @@
 #include <stb_image.h>
 #include <learnopengl/filesystem.h>
 #include <string>
+#include <vector>
+#include <cmath>
 
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
-float pitch = 0.0f;   // X
+float pitch = 18.0f;   // X
 float yaw = 0.0f;     // Y
 float roll = 0.0f;    // Z
 
@@ -79,15 +81,17 @@ void main()
 	color = vec4(textColor, 1.0) * sampled;
 })";
 
-void RenderCube(unsigned int cubeVAO, unsigned int shaderProgram,const glm::mat4 &projection,const glm::mat4 &view);
-void RenderText(unsigned int shaderProgram, std::string text, float x, float y, float scale, glm::vec3 color,const glm::mat4 &projection,const glm::mat4 &view);
+void RenderCube(unsigned int cubeVAO, unsigned int shaderProgram, const glm::mat4& projection, const glm::mat4& view);
+void RenderText(unsigned int shaderProgram, std::string text, float x, float y, float scale, glm::vec3 color, const glm::mat4& projection, const glm::mat4& view);
 int BitmapFontGenerate();
+void RenderAxes(unsigned int axisVAO, unsigned int shaderProgram, const glm::mat4& projection, const glm::mat4& view);
+void RenderCircle(unsigned int circleVAO, unsigned int shaderProgram, const glm::mat4& projection, const glm::mat4& view);
+std::vector<float> GenerateCircleVertices(float radius, int segments, glm::vec3 axis);
 
 void processInput(GLFWwindow* window) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
-	// ����������ת
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) pitch -= 1.0f;
 	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) pitch += 1.0f;
 	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) yaw -= 1.0f;
@@ -96,7 +100,7 @@ void processInput(GLFWwindow* window) {
 	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) roll -= 1.0f;
 	if (glfwGetKey(window, GLFW_KEY_Y) == GLFW_PRESS) yaw = 90.0f;
 	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
-		pitch = 0.0f;
+		pitch = 18.0f;
 		yaw = 0.0f;
 		roll = 0.0f;
 	}
@@ -126,7 +130,7 @@ int main(int argc, char* argv[]) {
 	glLinkProgram(shaderProgram);
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
-	
+
 	// generate bitmap font
 	BitmapFontGenerate();
 
@@ -159,35 +163,35 @@ int main(int argc, char* argv[]) {
 	};
 
 	Vertex vertices[] = {
-		{ { 0.5f, 0.5f, 0.5f}, {1.0f, 0.0f, 0.0f} },  // 0
-		{ { 0.5f,-0.5f, 0.5f}, {1.0f, 0.0f, 0.0f} },  // 1
-		{ {-0.5f,-0.5f, 0.5f}, {1.0f, 0.0f, 0.0f} },  // 2
-		{ {-0.5f, 0.5f, 0.5f}, {1.0f, 0.0f, 0.0f} },  // 3
+		{ { 0.5f, 0.5f, 0.5f}, {0.6f, 0.0f, 0.0f} },  // 0
+		{ { 0.5f,-0.5f, 0.5f}, {0.6f, 0.0f, 0.0f} },  // 1
+		{ {-0.5f,-0.5f, 0.5f}, {0.6f, 0.0f, 0.0f} },  // 2
+		{ {-0.5f, 0.5f, 0.5f}, {0.6f, 0.0f, 0.0f} },  // 3
 
-		{ { 0.5f, 0.5f,-0.5f}, {0.0f, 0.0f, 1.0f} },  // 4
-		{ { 0.5f,-0.5f,-0.5f}, {0.0f, 0.0f, 1.0f} },  // 5
-		{ {-0.5f,-0.5f,-0.5f}, {0.0f, 0.0f, 1.0f} },  // 6
-		{ {-0.5f, 0.5f,-0.5f}, {0.0f, 0.0f, 1.0f} },  // 7
+		{ { 0.5f, 0.5f,-0.5f}, {0.0f, 0.0f, 0.6f} },  // 4
+		{ { 0.5f,-0.5f,-0.5f}, {0.0f, 0.0f, 0.6f} },  // 5
+		{ {-0.5f,-0.5f,-0.5f}, {0.0f, 0.0f, 0.6f} },  // 6
+		{ {-0.5f, 0.5f,-0.5f}, {0.0f, 0.0f, 0.6f} },  // 7
 
-		{ { 0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 0.0f} },  // 8
-		{ { 0.5f,-0.5f, 0.5f}, {0.0f, 1.0f, 0.0f} },  // 9
-		{ { 0.5f,-0.5f,-0.5f}, {0.0f, 1.0f, 0.0f} },  // 10
-		{ { 0.5f, 0.5f,-0.5f}, {0.0f, 1.0f, 0.0f} },  // 11
+		{ { 0.5f, 0.5f, 0.5f}, {0.0f, 0.6f, 0.0f} },  // 8
+		{ { 0.5f,-0.5f, 0.5f}, {0.0f, 0.6f, 0.0f} },  // 9
+		{ { 0.5f,-0.5f,-0.5f}, {0.0f, 0.6f, 0.0f} },  // 10
+		{ { 0.5f, 0.5f,-0.5f}, {0.0f, 0.6f, 0.0f} },  // 11
 
-		{ {-0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 1.0f} },  // 12
-		{ {-0.5f,-0.5f, 0.5f}, {0.0f, 1.0f, 1.0f} },  // 13
-		{ {-0.5f,-0.5f,-0.5f}, {0.0f, 1.0f, 1.0f} },  // 14
-		{ {-0.5f, 0.5f,-0.5f}, {0.0f, 1.0f, 1.0f} },  // 15
+		{ {-0.5f, 0.5f, 0.5f}, {0.0f, 0.5f, 0.5f} },  // 12
+		{ {-0.5f,-0.5f, 0.5f}, {0.0f, 0.5f, 0.5f} },  // 13
+		{ {-0.5f,-0.5f,-0.5f}, {0.0f, 0.5f, 0.5f} },  // 14
+		{ {-0.5f, 0.5f,-0.5f}, {0.0f, 0.5f, 0.5f} },  // 15
 
-		{ { 0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 0.0f} },  // 16
-		{ {-0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 0.0f} },  // 17
-		{ {-0.5f, 0.5f,-0.5f}, {1.0f, 1.0f, 0.0f} },  // 18
-		{ { 0.5f, 0.5f,-0.5f}, {1.0f, 1.0f, 0.0f} },  // 19
+		{ { 0.5f, 0.5f, 0.5f}, {0.5f, 0.5f, 0.0f} },  // 16
+		{ {-0.5f, 0.5f, 0.5f}, {0.5f, 0.5f, 0.0f} },  // 17
+		{ {-0.5f, 0.5f,-0.5f}, {0.5f, 0.5f, 0.0f} },  // 18
+		{ { 0.5f, 0.5f,-0.5f}, {0.5f, 0.5f, 0.0f} },  // 19
 
-		{ { 0.5f,-0.5f, 0.5f}, {1.0f, 0.0f, 1.0f} },  // 20
-		{ {-0.5f,-0.5f, 0.5f}, {1.0f, 0.0f, 1.0f} },  // 21
-		{ {-0.5f,-0.5f,-0.5f}, {1.0f, 0.0f, 1.0f} },  // 22
-		{ { 0.5f,-0.5f,-0.5f}, {1.0f, 0.0f, 1.0f} }   // 23
+		{ { 0.5f,-0.5f, 0.5f}, {0.0f, 0.0f, 0.5f} },  // 20
+		{ {-0.5f,-0.5f, 0.5f}, {0.0f, 0.0f, 0.5f} },  // 21
+		{ {-0.5f,-0.5f,-0.5f}, {0.0f, 0.0f, 0.5f} },  // 22
+		{ { 0.5f,-0.5f,-0.5f}, {0.0f, 0.0f, 0.5f} }   // 23
 	};
 
 	unsigned int indices[] = {
@@ -216,6 +220,79 @@ int main(int argc, char* argv[]) {
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
 	glEnableVertexAttribArray(1);
 
+	//FOR axis
+	float axisVertices[] = {
+		// X-axis (red)
+		0.0f, 0.0f, 0.0f,  1.0f, 0.0f, 0.0f,  // Origin
+		1.0f, 0.0f, 0.0f,  1.0f, 0.5f, 0.5f,  // X-axis end
+
+		// Y-axis (green)
+		0.0f, 0.0f, 0.0f,  0.0f, 1.0f, 0.0f,  // Origin
+		0.0f, 1.0f, 0.0f,  0.5f, 1.0f, 0.5f,  // Y-axis end
+
+		// Z-axis (blue)
+		0.0f, 0.0f, 0.0f,  0.0f, 0.0f, 1.0f,  // Origin
+		0.0f, 0.0f, 1.0f,  0.5f, 0.5f, 1.0f   // Z-axis end
+	};
+
+	unsigned int axisVAO, axisVBO;
+	glGenVertexArrays(1, &axisVAO);
+	glGenBuffers(1, &axisVBO);
+
+	glBindVertexArray(axisVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, axisVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(axisVertices), axisVertices, GL_STATIC_DRAW);
+
+	// Position attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	// Color attribute
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+
+	// Generate circle vertices for X, Y, Z axes
+	std::vector<float> xCircle = GenerateCircleVertices(1.0f, 64, glm::vec3(1.0f, 0.0f, 0.0f));
+	std::vector<float> yCircle = GenerateCircleVertices(1.0f, 64, glm::vec3(0.0f, 1.0f, 0.0f));
+	std::vector<float> zCircle = GenerateCircleVertices(1.0f, 64, glm::vec3(0.0f, 0.0f, 1.0f));
+
+	unsigned int circleVAO[3], circleVBO[3];
+	glGenVertexArrays(3, circleVAO);
+	glGenBuffers(3, circleVBO);
+
+	// X-axis circle
+	glBindVertexArray(circleVAO[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, circleVBO[0]);
+	glBufferData(GL_ARRAY_BUFFER, xCircle.size() * sizeof(float), xCircle.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	// Y-axis circle
+	glBindVertexArray(circleVAO[1]);
+	glBindBuffer(GL_ARRAY_BUFFER, circleVBO[1]);
+	glBufferData(GL_ARRAY_BUFFER, yCircle.size() * sizeof(float), yCircle.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	// Z-axis circle
+	glBindVertexArray(circleVAO[2]);
+	glBindBuffer(GL_ARRAY_BUFFER, circleVBO[2]);
+	glBufferData(GL_ARRAY_BUFFER, zCircle.size() * sizeof(float), zCircle.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+
 	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 	glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));
 
@@ -230,15 +307,22 @@ int main(int argc, char* argv[]) {
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		RenderCube(cubeVAO, shaderProgram,projection,view);
+		RenderCube(cubeVAO, shaderProgram, projection, view);
+		RenderAxes(axisVAO, shaderProgram, projection, view);
+
+		// Render rotation circles
+		RenderCircle(circleVAO[0], shaderProgram, projection, view); // X-axis circle
+		RenderCircle(circleVAO[1], shaderProgram, projection, view); // Y-axis circle
+		RenderCircle(circleVAO[2], shaderProgram, projection, view); // Z-axis circle
+
 		std::stringstream ss;
 		ss << "Pitch(X): " << pitch << "°  Yaw(Y): " << yaw << "°  Roll(Z): " << roll << "°  ";
 		RenderText(textShaderProgram, ss.str(), 25.0f, 25.0f, 2.0f, glm::vec3(0.5, 0.8f, 0.2f), otprojection, view);
-		
+
 		RenderText(textShaderProgram, "Press up and down to change pitch, left & right for yaw", 25.0f, 68.0f, 1.5f, glm::vec3(0.8, 0.5f, 0.2f), otprojection, view);
 		RenderText(textShaderProgram, "Q W for roll, R to reset, Y set the pitch to 90 degree", 25.0f, 50.0f, 1.5f, glm::vec3(0.8, 0.5f, 0.2f), otprojection, view);
-		
-//		std::cout << "\rPitch(X): " << pitch << "°  Yaw(Y): " << yaw << "°  Roll(Z): " << roll << "°  " << std::flush;
+
+		//		std::cout << "\rPitch(X): " << pitch << "°  Yaw(Y): " << yaw << "°  Roll(Z): " << roll << "°  " << std::flush;
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -253,6 +337,50 @@ int main(int argc, char* argv[]) {
 	glDeleteBuffers(1, &textVBO);
 	glfwTerminate();
 	return 0;
+}
+
+// Function to generate circle vertices
+std::vector<float> GenerateCircleVertices(float radius, int segments, glm::vec3 axis) {
+	std::vector<float> vertices;
+	float angleStep = 2.0f * glm::pi<float>() / segments;
+
+	for (int i = 0; i <= segments; ++i) {
+		float angle = i * angleStep;
+		glm::vec3 point;
+
+		if (axis == glm::vec3(1.0f, 0.0f, 0.0f)) { // X-axis
+			point = glm::vec3(0.0f, radius * cos(angle), radius * sin(angle));
+		}
+		else if (axis == glm::vec3(0.0f, 1.0f, 0.0f)) { // Y-axis
+			point = glm::vec3(radius * cos(angle), 0.0f, radius * sin(angle));
+		}
+		else if (axis == glm::vec3(0.0f, 0.0f, 1.0f)) { // Z-axis
+			point = glm::vec3(radius * cos(angle), radius * sin(angle), 0.0f);
+		}
+
+		// Add position and color (e.g., red for X, green for Y, blue for Z)
+		vertices.push_back(point.x);
+		vertices.push_back(point.y);
+		vertices.push_back(point.z);
+
+		if (axis == glm::vec3(1.0f, 0.0f, 0.0f)) {
+			vertices.push_back(1.0f); // Red
+			vertices.push_back(0.0f);
+			vertices.push_back(0.0f);
+		}
+		else if (axis == glm::vec3(0.0f, 1.0f, 0.0f)) {
+			vertices.push_back(0.0f); // Green
+			vertices.push_back(1.0f);
+			vertices.push_back(0.0f);
+		}
+		else if (axis == glm::vec3(0.0f, 0.0f, 1.0f)) {
+			vertices.push_back(0.0f); // Blue
+			vertices.push_back(0.0f);
+			vertices.push_back(1.0f);
+		}
+	}
+
+	return vertices;
 }
 
 int BitmapFontGenerate() {
@@ -284,22 +412,22 @@ int BitmapFontGenerate() {
 			unsigned char* image_base = image + ((c / 16) * glyphwidth * 4 * 8) + ((c % 16) * fontwidth * 4);
 
 			memset(chars, 0, fontwidth * fontheight * 4);
-			
+
 			// 查找左右边界并同时复制数据
 			int left_edge = fontwidth;  // 默认为超出右侧边界
 			int right_edge = -1;        // 默认为超出左侧边界
-			
+
 			for (int row = 0; row < fontheight; row++) {
 				for (int col = 0; col < fontwidth; col++) {
 					// 获取原始像素位置
 					unsigned char* pixel = image_base + (row * glyphwidth * 4) + (col * 4);
-					
+
 					// 如果有不透明像素（alpha > 0）
 					if (pixel[3] > 0) {
 						// 更新边界
 						if (col < left_edge) left_edge = col;
 						if (col > right_edge) right_edge = col;
-						
+
 						// 直接复制有效像素到对应位置
 						unsigned char* dst_pixel = chars + (row * fontwidth * 4) + (col * 4);
 						dst_pixel[0] = pixel[0];
@@ -309,46 +437,46 @@ int BitmapFontGenerate() {
 					}
 				}
 			}
-			
+
 			// 处理空字符的情况
 			if (left_edge > right_edge) {
 				left_edge = 0;
 				right_edge = fontwidth - 1;
 			}
-			
+
 			// 计算实际宽度
 			int actual_width = right_edge - left_edge + 1;
-			
+
 			std::cout << "\r char width " << actual_width << " right " << right_edge << std::flush;
-			
-		 	unsigned int texture;
-		 	glGenTextures(1, &texture);
-		 	glBindTexture(GL_TEXTURE_2D, texture);
-		 	glTexImage2D(
-		 		GL_TEXTURE_2D,
-		 		0,
-		 		GL_RGBA,
-		 		fontwidth,
-		 		fontheight,
-		 		0,
-		 		GL_RGBA,
-		 		GL_UNSIGNED_BYTE,
-		 		chars
-		 	);
-		 	// set texture options
-		 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		 	// now store character for later use
-		 	Character character = {
-		 		texture,
-		 		glm::ivec2(fontwidth, fontheight),
-		 		glm::ivec2(0, fontheight),
-		 		static_cast<unsigned int>((actual_width+1) * fontheight * 8 )
-		 	};
-		 	Characters.insert(std::pair<char, Character>(c, character));
-		 }
+
+			unsigned int texture;
+			glGenTextures(1, &texture);
+			glBindTexture(GL_TEXTURE_2D, texture);
+			glTexImage2D(
+				GL_TEXTURE_2D,
+				0,
+				GL_RGBA,
+				fontwidth,
+				fontheight,
+				0,
+				GL_RGBA,
+				GL_UNSIGNED_BYTE,
+				chars
+			);
+			// set texture options
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			// now store character for later use
+			Character character = {
+				texture,
+				glm::ivec2(fontwidth, fontheight),
+				glm::ivec2(0, fontheight),
+				static_cast<unsigned int>((actual_width + 1) * fontheight * 8)
+			};
+			Characters.insert(std::pair<char, Character>(c, character));
+		}
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		// free image memory
@@ -357,7 +485,7 @@ int BitmapFontGenerate() {
 	}
 }
 
-void RenderCube(unsigned int cubeVAO, unsigned int shaderProgram,const glm::mat4 &projection,const glm::mat4 &view) {
+void RenderCube(unsigned int cubeVAO, unsigned int shaderProgram, const glm::mat4& projection, const glm::mat4& view) {
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
@@ -377,17 +505,38 @@ void RenderCube(unsigned int cubeVAO, unsigned int shaderProgram,const glm::mat4
 
 }
 
-void RenderText(unsigned int shaderProgram, std::string text, float x, float y, float scale, glm::vec3 color,const glm::mat4 &projection,const glm::mat4 &view) {
+void RenderAxes(unsigned int axisVAO, unsigned int shaderProgram, const glm::mat4& projection, const glm::mat4& view) {
+	glDisable(GL_DEPTH_TEST); // Optional: Disable depth testing for axes
+	glBindVertexArray(axisVAO);
+	glUseProgram(shaderProgram);
+
+	// Pass projection and view matrices to the shader
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, &projection[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, &view[0][0]);
+
+	glm::mat4 model = glm::mat4(1.0f);
+	model = glm::rotate(model, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));// X asix
+	model = glm::rotate(model, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));  // Y
+	model = glm::rotate(model, glm::radians(roll), glm::vec3(0.0f, 0.0f, 1.0f)); // Z
+
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+
+	// Draw the axes
+	glDrawArrays(GL_LINES, 0, 6); // 6 vertices (2 per axis)
+	glBindVertexArray(0);
+}
+
+void RenderText(unsigned int shaderProgram, std::string text, float x, float y, float scale, glm::vec3 color, const glm::mat4& projection, const glm::mat4& view) {
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	// activate corresponding render state
 	glUseProgram(shaderProgram);
-	
+
 	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, &projection[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, &view[0][0]);
-	
+
 	glUniform3f(glGetUniformLocation(shaderProgram, "textColor"), color.x, color.y, color.z);
 	glActiveTexture(GL_TEXTURE0);
 	glBindVertexArray(textVAO);
@@ -427,4 +576,26 @@ void RenderText(unsigned int shaderProgram, std::string text, float x, float y, 
 	}
 	glBindVertexArray(0);
 	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void RenderCircle(unsigned int circleVAO, unsigned int shaderProgram, const glm::mat4& projection, const glm::mat4& view) {
+	glEnable(GL_DEPTH_TEST); // Optional: Disable depth testing for circles
+	glBindVertexArray(circleVAO);
+	glUseProgram(shaderProgram);
+
+	// Pass projection and view matrices to the shader
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, &projection[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, &view[0][0]);
+
+	glm::mat4 model = glm::mat4(1.0f);
+
+	model = glm::rotate(model, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));// X asix
+	model = glm::rotate(model, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));  // Y
+	model = glm::rotate(model, glm::radians(roll), glm::vec3(0.0f, 0.0f, 1.0f)); // Z
+
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+
+	// Draw the circle
+	glDrawArrays(GL_LINE_LOOP, 0, 64); // 64 segments
+	glBindVertexArray(0);
 }
